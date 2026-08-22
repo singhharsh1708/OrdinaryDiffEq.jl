@@ -10,6 +10,7 @@ Branch-local working notes for the SDC implementation in `lib/OrdinaryDiffEqSDC`
 | `03-design.md` | the design, written before the code, including the phase-two parallel and IMEX designs |
 | `04-verification.md` | what was measured: coefficient comparison against `qmat`, the 470-case order gate, negative controls, non-linear problems, ecosystem check |
 | `05-status.md` | verified / inferred / open, separated |
+| `06-roadmap.md` | the literature counted, the method taxonomy, and what is left in what order |
 | `tools/gen_reference.py` | regenerates `lib/OrdinaryDiffEqSDC/test/sdc_reference.jl` from `qmat` |
 
 Reproducing the reference data:
