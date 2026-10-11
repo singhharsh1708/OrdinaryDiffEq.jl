@@ -36,6 +36,12 @@ RandomTamedEM
 RandomTaylor15
 ```
 
+### RandomTaylor - Derivative-Free RODE-Taylor Method of a Chosen Order
+
+```@docs
+RandomTaylor
+```
+
 ## Langevin Dynamics
 
 ### BAOAB - Langevin Integrator

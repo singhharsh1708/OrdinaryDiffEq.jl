@@ -31,10 +31,12 @@ include("alg_utils.jl")
 
 include("caches/basic_method_caches.jl")
 include("caches/dynamical_caches.jl")
+include("caches/random_taylor_caches.jl")
 
 include("perform_step/low_order.jl")
 include("perform_step/dynamical.jl")
+include("perform_step/random_taylor.jl")
 
-export RandomEM, RandomHeun, RandomTamedEM, RandomTaylor15, BAOAB
+export RandomEM, RandomHeun, RandomTamedEM, RandomTaylor15, RandomTaylor, BAOAB
 
 end # module

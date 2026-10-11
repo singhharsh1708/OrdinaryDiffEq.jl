@@ -132,6 +132,91 @@ measured rate is lower on coarser steps.
 struct RandomTaylor15 <: StochasticDiffEqRODEAlgorithm end
 
 """
+    RandomTaylor(; order = 3 // 2, holder = 1 // 2)
+
+**RandomTaylor: Derivative-free RODE-Taylor method of a chosen order (RODE)**
+
+RODE-Taylor scheme of Han and Kloeden for Random Ordinary Differential Equations driven
+by a scalar path supplied as a stored grid. `holder` is the Hölder exponent of the path,
+1/2 for a Wiener process and the Hurst index for fractional Brownian motion. The step is
+
+```math
+u_{n+1} = u_n + \\sum_a F_a(u_n, t_n, W(t_n)) \\, I_a
+```
+
+over all indices ``a = (a_1, \\dots, a_i)`` of non-negative integers with
+`i + holder * sum(a) < order + 1`. ``I_a`` is the iterated integral over the step of the
+powers ``a_1, \\dots, a_i`` of the path increment ``W(s) - W(t_n)``, and ``F_a`` is the
+matching coefficient, built from derivatives of the right-hand side of order ``a_k`` in
+the noise argument and ``i - 1`` nested derivatives in the state. The integrals are
+computed exactly for the piecewise linear path through the grid points. The derivatives
+are replaced by finite differences of `f`, central in the noise argument with spacing
+`abs(dt)^holder` and one-sided in the state with all points inside the step, so only
+evaluations of `f` are needed. `f` may depend on `t`.
+
+## Method Properties
+
+  - **Problem type**: RODEs driven by a `NoiseGrid` with scalar values
+  - **Pathwise order**: `order`, in the sense of Theorem 12.1 of the reference: for a
+    path that is Hölder continuous with every exponent below `holder`, the error is
+    bounded by a path-dependent constant times `dt^(order - ε)` for every `ε > 0`
+  - **Time stepping**: Fixed step size
+  - **Right-hand side evaluations**: 1, 5, 13, 23 and 51 per step for orders 0.5, 1.5,
+    2, 2.5 and 3 with `holder = 1 // 2`
+  - **Noise usage**: reads the driving path between the step endpoints
+
+## Keyword Arguments
+
+  - `order`: order of the scheme, with `0 < order <= 3`. A higher order needs terms with
+    more than three nested integrals, which are not implemented. The scheme changes only
+    when `order` passes a value `k + l * holder` with integers `k` and `l`.
+  - `holder`: Hölder exponent of the driving path, with `0 < holder <= 1`.
+
+## When to Use
+
+The step uses integrals of the driving path over `[t, t+dt]`, so the path must be
+resolved more finely than the solver steps. That happens when the noise is measured
+data or is generated on a fine grid and the solver is stepped coarsely.
+
+The cost grows quickly with the order. The number of indices, and with it the number of
+evaluations of `f`, rises with `order` and with `1 / holder`. The path integrals take
+one pass over the stored grid per solve, with one integral per index updated at every
+grid point. With `order = 1 // 2` and `holder = 1 // 2` the step is the Euler step of
+`RandomEM`. With `order = 3 // 2` and `holder = 1 // 2` the scheme has the terms of
+`RandomTaylor15`, which reaches them with 4 evaluations per step instead of 5.
+
+The finite differences perturb the noise argument by multiples of `abs(dt)^holder`, so
+for a right-hand side that oscillates quickly in `W` the asymptotic rate is reached only
+on small steps.
+
+In the package tests the root mean square error on Wiener paths decays at rates of
+about 1.9, 2.1 and 2.9 for orders 1.5, 2 and 2.5, and on fractional Brownian paths with
+Hurst index 0.3 at rates of about 1.1 and 1.6 for orders 1 and 1.6.
+
+## References
+
+  - Han, X., Kloeden, P. E., Random Ordinary Differential Equations and Their Numerical
+    Solution, Springer, 2017, Chapters 8 and 12.
+"""
+struct RandomTaylor <: StochasticDiffEqRODEAlgorithm
+    order::Rational{Int}
+    holder::Rational{Int}
+    function RandomTaylor(order, holder)
+        order > 0 || throw(ArgumentError("RandomTaylor needs order > 0, got order = $order"))
+        0 < holder <= 1 ||
+            throw(ArgumentError("RandomTaylor needs 0 < holder <= 1, got holder = $holder"))
+        order <= 3 || throw(
+            ArgumentError(
+                "RandomTaylor supports 0 < order <= 3, got order = $order. " *
+                    "A higher order needs terms with more than three nested integrals."
+            )
+        )
+        return new(rationalize(Int, float(order)), rationalize(Int, float(holder)))
+    end
+end
+RandomTaylor(; order = 3 // 2, holder = 1 // 2) = RandomTaylor(order, holder)
+
+"""
     BAOAB(; gamma = 1.0, scale_noise = true)
 
 **BAOAB: Langevin Dynamics Integrator (Specialized)**
