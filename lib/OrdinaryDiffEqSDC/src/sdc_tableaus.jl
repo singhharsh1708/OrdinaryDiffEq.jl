@@ -376,6 +376,18 @@ function generate_sdc_tableau(
         ::Type{T}, M::Int, node_type::SDCNodes.T, quad_type::SDCQuadrature.T,
         sweeper::SDCSweeper.T, nsweeps::Int, explicit_sweeper::SDCSweeper.T
     ) where {T}
+    key = (T, M, node_type, quad_type, sweeper)
+    tab = get(SDCTableauCache, key) do
+        SDCTableauCache[key] = _build_sdc_tableau(T, M, node_type, quad_type, sweeper)
+    end
+    # Each caller owns its tableau, so the cached one cannot be mutated through it.
+    return deepcopy(tab)::SDCTableau{T}
+end
+
+function _build_sdc_tableau(
+        ::Type{T}, M::Int, node_type::SDCNodes.T, quad_type::SDCQuadrature.T,
+        sweeper::SDCSweeper.T
+    ) where {T}
     return setprecision(BigFloat, SDC_COEFF_PRECISION) do
         τ = _sdc_nodes_big(M, node_type, quad_type)
         Q = _lagrange_integrals(τ, τ)
@@ -388,6 +400,10 @@ function generate_sdc_tableau(
         SDCTableau{T}(T.(τ), T.(weights), T.(Q), QΔ, QE, T.(dense))
     end
 end
+
+const SDCTableauCache = Dict{
+    Tuple{Type, Int, SDCNodes.T, SDCQuadrature.T, SDCSweeper.T}, SDCTableau{T} where {T},
+}()
 
 """
     min_sr_s_coefficients(node_type, quad_type, M)
